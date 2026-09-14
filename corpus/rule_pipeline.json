@@ -1,0 +1,56 @@
+{
+  "version": "1.0.0",
+  "description": "Hierarchical application order for Tiberian IPA pipeline",
+  "default_stream": "forte_lene",
+  "unicode_working_form": "NFD",
+  "stages": [
+    {
+      "id": "01_normalize",
+      "description": "Unicode NFD + orthographic fixes"
+    },
+    {
+      "id": "02_qere",
+      "description": "Qere/ketiv resolution"
+    },
+    {
+      "id": "03_orthography",
+      "description": "Letters, matres, shin/sin, dagesh/rafe marks"
+    },
+    {
+      "id": "04_inventory",
+      "description": "Consonant/vowel IPA inventory"
+    },
+    {
+      "id": "05_shewa_hatef",
+      "description": "Shewa / ḥaṭef classification"
+    },
+    {
+      "id": "06_syllables",
+      "description": "Syllabification / metrical structure"
+    },
+    {
+      "id": "07_length",
+      "description": "Vowel length, epenthesis, furtive pataḥ"
+    },
+    {
+      "id": "08_bgdkpt",
+      "description": "Begadkephat stop/fricative + sandhi"
+    },
+    {
+      "id": "09_gemination",
+      "description": "Dagesh forte / extended forte / loss of gemination"
+    },
+    {
+      "id": "10_resh_guttural",
+      "description": "Resh allophony, guttural constraints"
+    },
+    {
+      "id": "11_stress_maq",
+      "description": "Stress, gaʿya, maqqef, deḥiq"
+    },
+    {
+      "id": "12_emit",
+      "description": "IPA emission (bare, forte_lene default)"
+    }
+  ]
+}

@@ -1,0 +1,738 @@
+import type { Schema } from "../schema.js";
+
+export const tiberian: Schema = {
+  VOCAL_SHEVA: "a",
+  HATAF_SEGOL: "ɛ",
+  HATAF_PATAH: "a",
+  HATAF_QAMATS: "ɔ",
+  HIRIQ: "i",
+  TSERE: "e",
+  SEGOL: "ɛ",
+  PATAH: "a",
+  QAMATS: "ɔ",
+  HOLAM: "o",
+  HOLAM_HASER: "o",
+  QUBUTS: "u",
+  DAGESH: "",
+  DAGESH_CHAZAQ: true,
+  MAQAF: "-",
+  PASEQ: "",
+  SOF_PASUQ: "",
+  QAMATS_QATAN: "ɔ",
+  FURTIVE_PATAH: "a",
+  HIRIQ_YOD: "iː",
+  TSERE_YOD: "eː",
+  SEGOL_YOD: "ɛː",
+  SHUREQ: "uː",
+  HOLAM_VAV: "oː",
+  QAMATS_HE: "ɔː",
+  SEGOL_HE: "ɛː",
+  TSERE_HE: "eː",
+  MS_SUFX: "ɔw",
+  ALEF: "ʔ",
+  BET: "v",
+  BET_DAGESH: "b",
+  GIMEL: "ʁ",
+  GIMEL_DAGESH: "g",
+  DALET: "ð",
+  DALET_DAGESH: "d",
+  HE: "h",
+  VAV: "v",
+  ZAYIN: "z",
+  HET: "ħ",
+  TET: "tˁ",
+  YOD: "j",
+  FINAL_KAF: "χ",
+  KAF: "χ",
+  KAF_DAGESH: "kʰ",
+  LAMED: "l",
+  FINAL_MEM: "m",
+  MEM: "m",
+  FINAL_NUN: "n",
+  NUN: "n",
+  SAMEKH: "s",
+  AYIN: "ʕ",
+  FINAL_PE: "f",
+  PE: "f",
+  PE_DAGESH: "pʰ",
+  FINAL_TSADI: "sˁ",
+  TSADI: "sˁ",
+  QOF: "q̟",
+  RESH: "ʀ̟",
+  SHIN: "ʃ",
+  SIN: "s",
+  TAV: "θ",
+  TAV_DAGESH: "tʰ",
+  DIVINE_NAME: "ʔaðoːˈnɔːɔj",
+  DIVINE_NAME_ELOHIM: "ʔɛloːˈhiːim",
+  STRESS_MARKER: { location: "before-syllable", mark: "ˈ" },
+  ADDITIONAL_FEATURES: [
+    {
+      TITLE: "Yod with Dagesh",
+      DESCRIPTION: "Transliterate a yod with a dagesh as a palatal plosive (ɟɟ).",
+      FEATURE: "cluster",
+      HEBREW: "\u{05D9}\u{05BC}",
+      TRANSLITERATION: (cluster, hebrew) => {
+        return cluster.text.replace(hebrew, "ɟɟ");
+      }
+    },
+    {
+      TITLE: "Tav with Dagesh",
+      DESCRIPTION: "The schema value is a digraph which needs to be handled differently depending on context.",
+      FEATURE: "cluster",
+      HEBREW: /תּ/u,
+      TRANSLITERATION: (cluster, heb, schema) => {
+        // rule for a form where the output is a digraph
+        // where the second character is not a combining character
+
+        const digraph = schema["TAV_DAGESH"];
+        // remove the second character of the digraph
+        const secondChar = "ʰ";
+        const noSecondCharacter = digraph?.replace(secondChar, "") ?? "";
+
+        // if there is a dagesh, and the previous word is in construct and does not end in a closed syllable,
+        // then it is a word initial dagesh chazaq and we need to replace the first character of the digraph
+        const prevWord = cluster.syllable?.word?.prev?.value;
+        if (prevWord?.isInConstruct && !prevWord.syllables.at(-1)?.isClosed) {
+          return cluster.text.replace(heb, `${noSecondCharacter + digraph}`);
+        }
+
+        // if there is a dagesh at the beginning of the word
+        // we can return the text, as the character with the dagesh will not be doubled
+        // oxlint-disable-next-line typescript/prefer-optional-chain
+        if (!cluster.prev || cluster.prev.value?.isNotHebrew) {
+          return cluster.text;
+        }
+
+        // if there is a dagesh, it may be that it is a dagesh qal (i.e. lene)
+        // if it is a dagesh lene, then like the beginning of the word,
+        // the character w/ the dagesh will not be doubled
+        const prevCoda = cluster.syllable?.prev?.value?.codaWithGemination;
+        const dagesh = "\u{05BC}";
+        const noDageshHebrew = typeof heb === "string" ? heb.replace(dagesh, "") : heb.source.replace(dagesh, "");
+        if (!prevCoda?.includes(noDageshHebrew)) {
+          return cluster.text;
+        }
+
+        // because the initial value is a digraph, we need to replace the first character
+        // or it will be doubled in rules.ts as "tʰtʰ"
+        return cluster.text.replace(heb, `${noSecondCharacter + digraph}`);
+      }
+    },
+    {
+      TITLE: "Pe with Dagesh",
+      DESCRIPTION: "The schema value is a digraph which needs to be handled differently depending on context.",
+      FEATURE: "cluster",
+      HEBREW: /פ/u,
+      TRANSLITERATION: (cluster, heb, schema) => {
+        //  /ת(?!\u{05b0})/u rule for explanation
+
+        const digraph = schema["PE_DAGESH"];
+        const secondChar = "ʰ";
+        const noAspiration = digraph?.replace(secondChar, "") ?? "";
+
+        const prevWord = cluster.syllable?.word?.prev?.value;
+        if (prevWord?.isInConstruct && !prevWord.syllables.at(-1)?.isClosed) {
+          return cluster.text.replace(heb, `${noAspiration + digraph}`);
+        }
+
+        // oxlint-disable-next-line typescript/prefer-optional-chain
+        if (!cluster.prev || cluster.prev.value?.isNotHebrew) {
+          return cluster.text;
+        }
+
+        const prevCoda = cluster.syllable?.prev?.value?.codaWithGemination;
+        const dagesh = "\u{05BC}";
+        const noDageshHebrew = typeof heb === "string" ? heb.replace(dagesh, "") : heb.source.replace(dagesh, "");
+        if (!prevCoda?.includes(noDageshHebrew)) {
+          return cluster.text;
+        }
+
+        return cluster.text.replace(heb, `${noAspiration + digraph}`);
+      }
+    },
+    {
+      TITLE: "Kaf with Dagesh",
+      DESCRIPTION: "The schema value is a digraph which needs to be handled differently depending on context.",
+      FEATURE: "cluster",
+      HEBREW: /כּ|ךּ/u,
+      TRANSLITERATION: (cluster, heb, schema) => {
+        // /תּ[\u{05B4}-\u{05BB}]/u rule for explanation
+        const digraph = schema["KAF_DAGESH"];
+        const secondChar = "ʰ";
+        const noAspiration = digraph?.replace(secondChar, "") ?? "";
+
+        const prevWord = cluster.syllable?.word?.prev?.value;
+        if (prevWord?.isInConstruct && !prevWord.syllables.at(-1)?.isClosed) {
+          return cluster.text.replace(heb, `${noAspiration + digraph}`);
+        }
+
+        // oxlint-disable-next-line typescript/prefer-optional-chain
+        if (!cluster.prev || cluster.prev.value?.isNotHebrew) {
+          return cluster.text;
+        }
+
+        const prevCoda = cluster.syllable?.prev?.value?.codaWithGemination;
+        const dagesh = "\u{05BC}";
+        const noDageshHebrew = typeof heb === "string" ? heb.replaceAll(dagesh, "") : heb.source.replaceAll(dagesh, "");
+        // the value of noDageshHebrew will be כ|ך, so we can conver back to a regex
+        if (!new RegExp(noDageshHebrew, "u").test(prevCoda || "")) {
+          return cluster.text;
+        }
+
+        return cluster.text.replace(heb, `${noAspiration + digraph}`);
+      }
+    },
+    {
+      TITLE: "Tet with Dagesh",
+      DESCRIPTION: "The schema value is a digraph which needs to be handled differently depending on context.",
+      FEATURE: "cluster",
+      HEBREW: /טּ/u,
+      TRANSLITERATION: (cluster, heb, schema) => {
+        //  /ת(?!\u{05b0})/u rule for explanation
+
+        const digraph = schema["TET"];
+        const secondChar = "ˁ";
+        const noSecondCharacter = digraph?.replace(secondChar, "") ?? "";
+
+        const prevWord = cluster.syllable?.word?.prev?.value;
+        if (prevWord?.isInConstruct && !prevWord.syllables.at(-1)?.isClosed) {
+          return cluster.text.replace(heb, `${noSecondCharacter + digraph}`);
+        }
+
+        // oxlint-disable-next-line typescript/prefer-optional-chain
+        if (!cluster.prev || cluster.prev.value?.isNotHebrew) {
+          return cluster.text;
+        }
+
+        const prevCoda = cluster.syllable?.prev?.value?.codaWithGemination;
+        const dagesh = "\u{05BC}";
+        const noDageshHebrew = typeof heb === "string" ? heb.replace(dagesh, "") : heb.source.replace(dagesh, "");
+        if (!prevCoda?.includes(noDageshHebrew)) {
+          return cluster.text;
+        }
+
+        return cluster.text.replace(heb, `${noSecondCharacter + digraph}`);
+      }
+    },
+    {
+      TITLE: "Tsadi with Dagesh",
+      DESCRIPTION: "The schema value is a digraph which needs to be handled differently depending on context.",
+      FEATURE: "cluster",
+      HEBREW: /צּ/u,
+      TRANSLITERATION: (cluster, heb, schema) => {
+        //  /ת(?!\u{05b0})/u rule for explanation
+
+        const digraph = schema["TSADI"];
+        const secondChar = "ˁ";
+        const noSecondCharacter = digraph?.replace(secondChar, "") ?? "";
+
+        const prevWord = cluster.syllable?.word?.prev?.value;
+        if (prevWord?.isInConstruct && !prevWord.syllables.at(-1)?.isClosed) {
+          return cluster.text.replace(heb, `${noSecondCharacter + digraph}`);
+        }
+
+        // oxlint-disable-next-line typescript/prefer-optional-chain
+        if (!cluster.prev || cluster.prev.value?.isNotHebrew) {
+          return cluster.text;
+        }
+
+        const prevCoda = cluster.syllable?.prev?.value?.codaWithGemination;
+        const dagesh = "\u{05BC}";
+        const noDageshHebrew = typeof heb === "string" ? heb.replace(dagesh, "") : heb.source.replace(dagesh, "");
+        if (!prevCoda?.includes(noDageshHebrew)) {
+          return cluster.text;
+        }
+
+        return cluster.text.replace(heb, `${noSecondCharacter + digraph}`);
+      }
+    },
+    {
+      TITLE: "Quiescent Alef",
+      DESCRIPTION: "Transliterate an alef with no vowel as quiesced.",
+      FEATURE: "cluster",
+      HEBREW: /\u{05D0}(?![\u{05B1}-\u{05BB}\u{05C7}])/u,
+      TRANSLITERATION: (cluster, heb) => {
+        const next = cluster.next?.value;
+        if (next?.isShureq || !cluster?.prev) {
+          return cluster.text;
+        }
+
+        return cluster.text.replace(heb, "");
+      }
+    },
+    {
+      TITLE: "Alef with Dagesh",
+      DESCRIPTION: "Remove the dagesh from an alef.",
+      FEATURE: "cluster",
+      HEBREW: "\u{05D0}\u{05BC}",
+      TRANSLITERATION: (cluster) => {
+        // remove the dagesh
+        return cluster.text.replace("\u{05BC}", "");
+      }
+    },
+    {
+      TITLE: "Pharyngealized Resh",
+      DESCRIPTION:
+        "Transliterate a resh as pharyngealized depending on context with surrounding alveolars and other consonants.",
+      FEATURE: "syllable",
+      HEBREW: /ר/u,
+      TRANSLITERATION: (syllable) => {
+        // see TPT 229 for a summary if the pharyngealized resh
+        const alveolars = /[דזצתטסלנ]|שׂ/;
+
+        // find cluster containing resh
+        const cluster = syllable.clusters.filter((c) => c.text.includes("ר"))[0];
+        const prevCluster = cluster.prev?.value;
+        const currentSyllable = cluster?.syllable;
+        const [onset, _, coda] = currentSyllable ? currentSyllable.structure(true) : ["", "", ""];
+
+        if (prevCluster && alveolars.test(prevCluster.text)) {
+          if (onset.includes("ר") && !prevCluster.hasVowel) {
+            return syllable.text.replace("ר", "rˁ");
+          }
+
+          if (coda.includes("ר") && prevCluster.hasVowel) {
+            return syllable.text.replace("ר", "rˁ");
+          }
+        }
+
+        const nextCluster = cluster.next?.value;
+        const lamedAndNun = /[לנן]/;
+        if (nextCluster && lamedAndNun.test(nextCluster.text)) {
+          if (onset.includes("ר") && !cluster.hasVowel) {
+            return syllable.text.replace("ר", "rˁ");
+          }
+
+          if (coda.includes("ר") && cluster.hasSheva) {
+            return syllable.text.replace("ר", "rˁ");
+          }
+        }
+
+        // default
+        return syllable.text;
+      }
+    },
+    {
+      TITLE: "Furtive Patach before Het",
+      DESCRIPTION: "Transliterate a furtive patach before a het when preceded by vav or yod.",
+      FEATURE: "syllable",
+      HEBREW: "ח\u{05B7}\u{05C3}?$",
+      PASS_THROUGH: true,
+      TRANSLITERATION: (syllable, _hebrew, schema) => {
+        // furtive patach before het preceded by vav or yod
+        const prevText = syllable.prev?.value?.text || "";
+        // see Khan 497-98 for examples involving length and the meteg
+        // make sure to adjust other rules
+        if (syllable.isFinal && prevText) {
+          if (/[יו]/.test(prevText)) {
+            const glide = /ו/.test(prevText) ? "w" : "j";
+            return glide + schema["PATAH"] + schema["HET"];
+          }
+          return schema["PATAH"] + schema["HET"];
+        }
+
+        return syllable.text;
+      }
+    },
+    {
+      TITLE: "Furtive Patach before Ayin",
+      DESCRIPTION: "Transliterate a furtive patach before an ayin when preceded by vav or yod.",
+      FEATURE: "syllable",
+      HEBREW: "ע\u{05B7}\u{05C3}?$",
+      PASS_THROUGH: true,
+      TRANSLITERATION: (syllable, _hebrew, schema) => {
+        // furtive patach before ayin preceded by vav or yod
+        const prevText = syllable.prev?.value?.text;
+
+        if (syllable.isFinal && prevText) {
+          if (/[יו]/.test(prevText)) {
+            const glide = /ו/.test(prevText) ? "w" : "j";
+            return glide + schema["PATAH"] + schema["AYIN"];
+          }
+          return schema["PATAH"] + schema["AYIN"];
+        }
+
+        return syllable.text;
+      }
+    },
+    {
+      TITLE: "Furtive Patach before He",
+      DESCRIPTION: "Transliterate a furtive patach before a he when preceded by vav or yod.",
+      FEATURE: "syllable",
+      HEBREW: "ה\u{05BC}\u{05B7}\u{05C3}?$",
+      PASS_THROUGH: true,
+      TRANSLITERATION: (syllable, _hebrew, schema) => {
+        // furtive patach before he preceded by vav or yod
+        const prevText = syllable.prev?.value?.text;
+
+        if (syllable.isFinal && prevText) {
+          if (/[יו]/.test(prevText)) {
+            const glide = /ו/.test(prevText) ? "w" : "j";
+            return glide + schema["PATAH"] + schema["HE"];
+          }
+          return schema["PATAH"] + schema["HE"];
+        }
+
+        return syllable.text;
+      }
+    },
+    {
+      TITLE: "Word initial shureq",
+      DESCRIPTION: "Transliterate a shureq at the beginning of a word as wuː.",
+      FEATURE: "syllable",
+      HEBREW: /וּ(?![\u{05B4}-\u{05BB}])/u,
+      TRANSLITERATION: (syllable, _, schema) => {
+        // finds a vav with a dagesh not followed by a vowel character
+        // if the syllable is the first syllable, replace with wuː
+        // syllable.clusters[0].isShureq is not totally necessary, but it's a good check
+        if (!syllable.prev && syllable.clusters[0].isShureq) {
+          const text = syllable.text;
+          const hasMeteg = syllable.clusters.map((c) => c.hasMeteg).includes(true); // also called gaya marking half long vowel length (§1.2.8.2.2)
+          const secondaryAccent = hasMeteg ? "ˌ" : "";
+          const halfLengthMarker = hasMeteg ? "ˑ" : "";
+          return text.replace("וּ", `${secondaryAccent}wu${halfLengthMarker}`);
+        }
+
+        if (syllable.isAccented && syllable.isClosed) {
+          const noLength = schema["SHUREQ"].replace("ː", "");
+          return syllable.text.replace("וּ", schema["SHUREQ"] + noLength);
+        }
+
+        return syllable.text;
+      }
+    },
+    {
+      TITLE: "Full Vowel Syllable",
+      DESCRIPTION:
+        "Matches any syllable that has a full vowel character (i.e. not sheva) and determines the appropriate transliteration for length.",
+      FEATURE: "syllable",
+      HEBREW: /[\u{05B4}-\u{05BB}\u{05C7}]/u,
+      TRANSLITERATION: (syllable, _, schema) => {
+        // this features matches any syllable that has a full vowel character (i.e. not sheva)
+        const vowelName = syllable.vowelNames[0];
+        const vowel = syllable.vowels[0];
+
+        if (!vowel || !vowelName) {
+          return syllable.text;
+        }
+
+        if (vowelName === "SHEVA") {
+          throw new Error(`Syllable ${syllable.text} has a sheva as vowel, should not have matched`);
+        }
+
+        // half vowels do not have length; exit early
+        const hasHalfVowel = syllable.clusters.map((c) => c.hasHalfVowel).includes(true);
+        if (hasHalfVowel) {
+          throw new Error(`Syllable ${syllable.text} has a hataf as vowel, should not have matched`);
+        }
+
+        const [onset, _nuclues, coda] = syllable.structure(true);
+        /**
+         * Determines the realization of a patach
+         *
+         * @param vowelChar the hebrew vowel character
+         * @returns the back unrounded patach realization of the vowel or the original vowel if not patach
+         */
+        function determinePatachRealization(vowelChar: string) {
+          // see comment for explanation: https://github.com/charlesLoder/hebrew-transliteration/issues/45#issuecomment-1712186201
+          // exit early if not patach
+          if (vowelName !== "PATAH" && vowelName !== "HATAF_PATAH") {
+            return vowelChar;
+          }
+
+          // by this point, the resh has already been pharyngealized
+          // but only for the current syllable
+          const pharyngealized = /rˁ|ט|צ|ץ/;
+          if (pharyngealized.test(onset) || pharyngealized.test(coda)) {
+            return "ɑ";
+          }
+
+          // the resh of the next syllable has not been transliterated yet
+          // check if the next syllable has a resh in the onset
+          // and if the current syllable's coda is an alveolar
+          const nextSyllable = syllable.next?.value;
+          const nextOnset = nextSyllable?.onset;
+          const alveolars = /[דזצתטסלנ]|שׂ/;
+          if (nextOnset === "ר" && alveolars.test(coda)) {
+            return "ɑ";
+          }
+
+          return vowelChar;
+        }
+
+        const noMaterText = syllable.clusters
+          .filter((c) => !c.isMater)
+          .map((c) => c.text)
+          .join("")
+          // a tsere, segol, or holam followed by a he without a mappiq is not a mater
+          // but b/c the he is not pronounced, we need to remove the final he
+          .replace(/([\u{05B5}\u{05B6}\u{05B9}].{0,1})\u{05D4}(?!\u{05BC})/u, "$1");
+
+        const hasMaters = syllable.clusters.map((c) => c.isMater).includes(true);
+        const lengthMarker = "ː";
+        const halfLengthMarker = "ˑ";
+
+        // See TPT §1.2.10 concering meteg/gaya
+        const hasMeteg = syllable.clusters.map((c) => c.hasMeteg).includes(true);
+        if (hasMeteg) {
+          const hasLongVowel = syllable.clusters.map((c) => c.hasLongVowel).includes(true);
+          // when a meteg is present, the syllable implicitly has secondary stress
+          // and the vowel is extended if it is not already long
+          const firstConsonant = noMaterText[0];
+          return noMaterText
+            .replace(firstConsonant, `ˌ${firstConsonant}`)
+            .replace(vowel, `${determinePatachRealization(vowel)}${hasLongVowel ? lengthMarker : halfLengthMarker}`);
+        }
+
+        const isClosed = syllable.isClosed;
+        const isAccented = syllable.isAccented;
+
+        // TPT §1.2.4, p288
+        // When long vowels with the main stress occur in closed syllables,
+        // there is evidence that an epenthetic with the same quality as that of the long vowel
+        // occurred before the final consonant in its phonetic realization"
+        if (isAccented && isClosed) {
+          const syllableSeparator = schema["SYLLABLE_SEPARATOR"] || "";
+          const vowelRealization = determinePatachRealization(vowel);
+          return noMaterText.replace(
+            vowel,
+            `${vowelRealization + lengthMarker + syllableSeparator + vowelRealization}`
+          );
+        }
+
+        // https://github.com/charlesLoder/hebrew-transliteration/issues/45#issuecomment-1747967050
+        const longerVowels = ["HOLAM", "TSERE", "QAMATS"];
+        if (!isAccented && isClosed && !syllable.isFinal && longerVowels.includes(vowelName)) {
+          const syllableSeparator = schema["SYLLABLE_SEPARATOR"] || "";
+          const vowelRealization = determinePatachRealization(vowel);
+          return noMaterText.replace(
+            vowel,
+            `${vowelRealization + lengthMarker + syllableSeparator + vowelRealization}`
+          );
+        }
+
+        // TPT §1.2.2.1 p268
+        // Vowels represented by basic vowel signs are long when they are either
+        // (i) in a stressed syllable or (ii) in an unstressed open syllable.
+        if (isAccented || (!isAccented && !isClosed)) {
+          return noMaterText.replace(vowel, `${determinePatachRealization(vowel) + lengthMarker}`);
+        }
+
+        if (!hasMaters && !isClosed && !isAccented) {
+          return noMaterText.replace(vowel, `${determinePatachRealization(vowel)}`);
+        }
+
+        return syllable.text.replace(vowel, `${determinePatachRealization(vowel)}`);
+      }
+    },
+    {
+      TITLE: "Hataf Vowel Syllable",
+      DESCRIPTION:
+        "Matches any syllable that has a hataf vowel character and determines the appropriate transliteration.",
+      FEATURE: "syllable",
+      HEBREW: /[\u{05B1}-\u{05B3}]/u,
+      TRANSLITERATION: (syllable) => {
+        // this features matches any syllable that has a hataf vowel character
+        const vowelName = syllable.vowelNames[0];
+        const vowel = syllable.vowels[0];
+
+        if (!vowel || !vowelName) {
+          return syllable.text;
+        }
+
+        if (vowelName === "SHEVA") {
+          throw new Error(`Syllable ${syllable.text} has a sheva as vowel, should not have matched`);
+        }
+
+        const hasNonHalfVowels = syllable.clusters.map((c) => c.hasShortVowel || c.hasLongVowel).includes(true);
+        if (hasNonHalfVowels) {
+          throw new Error(`Syllable ${syllable.text} does not have a hataf vowel, should not have matched`);
+        }
+
+        const [onset, _nuclues, coda] = syllable.structure(true);
+        /**
+         * Determines the realization of a patach
+         *
+         * @param vowelChar the hebrew vowel character
+         * @returns the back unrounded patach realization of the vowel or the original vowel if not patach
+         */
+        function determinePatachRealization(vowelChar: string) {
+          // exit early if not hataf patach
+          if (vowelName !== "HATAF_PATAH") {
+            return vowelChar;
+          }
+
+          // by this point, the resh has already been pharyngealized in the transliteration
+          // but only for the current syllable
+          const pharyngealized = /rˁ|ט|צ|ץ/;
+          if (pharyngealized.test(onset) || pharyngealized.test(coda)) {
+            return "ɑ";
+          }
+
+          // the resh of the next syllable has not been transliterated yet
+          // check if the next syllable has a resh in the onset
+          // and if the current syllable's coda is an alveolar
+          const nextSyllable = syllable.next?.value;
+          const nextOnset = nextSyllable?.onset;
+          const alveolars = /[דזצתטסלנ]|שׂ/;
+          if (nextOnset === "ר" && alveolars.test(coda)) {
+            return "ɑ";
+          }
+
+          // check for the "environment of pharyngealized consonants"
+          // https://www.tiberianhebrew.com/patah
+          if (nextOnset && /[צץט]/.test(nextOnset)) {
+            return "ɑ";
+          }
+
+          return vowelChar;
+        }
+
+        return syllable.text.replace(vowel, `${determinePatachRealization(vowel)}`);
+      }
+    },
+    {
+      TITLE: "Syllable with Sheva",
+      DESCRIPTION:
+        "Matches any syllable that contains a sheva that is not preceded by a full vowel character or shureq and determines the appropriate transliteration.",
+      FEATURE: "syllable",
+      HEBREW: /(?<!.*([\u{05B4}-\u{05BB}\u{05C7}]|\u{05D5}\u{05BC}).*)\u{05B0}/u,
+      TRANSLITERATION: (syllable, _hebrew, schema) => {
+        // matches any syllable that contains a sheva that is not preceded by a full vowel character [\u{05B4}-\u{05BB}\u{05C7}]
+        // or shureq \u{5D5}\u{5BC}
+        const nextSyllable = syllable.next?.value;
+        if (!nextSyllable) return syllable.text;
+
+        const nextSylFirstCluster = nextSyllable.clusters[0].text;
+        if (!nextSylFirstCluster) return syllable.text;
+
+        const [onset, _, coda] = syllable.structure(true);
+
+        function isBackUnrounded() {
+          // see comment for explanation: https://github.com/charlesLoder/hebrew-transliteration/issues/45#issuecomment-1712186201
+          // by this point, the resh has already been pharyngealized in the transliteration
+          const pharyngealized = /rˁ|ט|צ|ץ/;
+          if (pharyngealized.test(onset) || pharyngealized.test(coda)) {
+            return true;
+          }
+
+          const nextSyllable = syllable.next?.value;
+          if (!nextSyllable) {
+            return false;
+          }
+
+          const nextOnset = nextSyllable.onset;
+          if (pharyngealized.test(nextOnset)) {
+            return true;
+          }
+
+          return false;
+        }
+
+        function transliterateShevaAsVowel(vowel: string) {
+          const hasMeteg = syllable.clusters.map((c) => c.hasMeteg).includes(true);
+          const secondaryAccent = hasMeteg ? "ˌ" : "";
+          const halfLengthMarker = hasMeteg ? "ˑ" : "";
+          const newVowel = vowel.replace("ː", "") + halfLengthMarker;
+
+          return secondaryAccent + syllable.text.replace(/\u{05B0}/u, newVowel);
+        }
+
+        const nextHasYod = nextSylFirstCluster.includes("י");
+        if (nextHasYod) {
+          return transliterateShevaAsVowel(isBackUnrounded() ? "ɑ" : schema["HIRIQ"]);
+        }
+
+        const isGuttural = /[אהחע]/.test(nextSylFirstCluster);
+        if (!isGuttural) {
+          return transliterateShevaAsVowel(isBackUnrounded() ? "ɑ" : schema["PATAH"]);
+        }
+
+        const nextVowel = nextSyllable.vowelNames[0];
+        if (!nextVowel) {
+          throw new Error(
+            `Syllable ${syllable.text} has a sheva as a vowel, but the next syllable ${nextSylFirstCluster} does not have a vowel`
+          );
+        }
+
+        if (nextVowel === "SHEVA") {
+          throw new Error(
+            `Syllable ${syllable.text} has a sheva as a vowel, but the next syllable ${nextSylFirstCluster} also has a sheva as a vowel`
+          );
+        }
+
+        return transliterateShevaAsVowel(schema[nextVowel]);
+      }
+    },
+    {
+      TITLE: "Jerusalem",
+      DESCRIPTION: "Transliterate instances of Jerusalem spelled without a yod to match the later spelling convention.",
+      FEATURE: "syllable",
+      HEBREW: /^\u{5B4}\u{5DD}/u,
+      TRANSLITERATION: (syl, heb, schema) => {
+        // This rule attempts to find instances of Jerusalem spelled without a yod
+
+        // this is just a sanity check that the previous syllable
+        // should be a lamed with a qamats or a patah
+        const prev = syl.prev?.value;
+        if (
+          prev &&
+          !prev.isClosed &&
+          !prev.hasVowelName("QAMATS") &&
+          !prev.hasVowelName("PATAH") &&
+          prev.onset !== "ל"
+        ) {
+          return syl.text;
+        }
+
+        // update this syllable to match the later spelling of Jerusalem
+        return syl.text.replace(heb, `${schema["YOD"]}${schema["HIRIQ"]}${schema["FINAL_MEM"]}`);
+      }
+    },
+    {
+      TITLE: "Issachar",
+      DESCRIPTION: "Transliterate instances of the name Issachar",
+      FEATURE: "word",
+      HEBREW: /(וְ)?יִשָּׂשכָר/,
+      PASS_THROUGH: true,
+      TRANSLITERATION: (word, heb) => {
+        // matches the name Issachar
+        const taamim = /[\u{0590}-\u{05AF}\u{05BD}\u{05BF}]/gu;
+        const text = word.text.replace(taamim, "");
+        const match = text.match(heb);
+        const vav = match?.[1] ?? "";
+        const issachar = "jissɔːˈχɔːɔʀ̟";
+        return `${vav}${issachar}`;
+      }
+    },
+    {
+      TITLE: "Interrogative in construct",
+      DESCRIPTION: "Transliterate instances of the interrogative word in construct form.",
+      FEATURE: "word",
+      HEBREW: "מַה־",
+      TRANSLITERATION: (word, heb, schema) => {
+        return word.text.replace(heb, schema["MEM"] + schema["PATAH"] + schema["HE"] + schema["MAQAF"]);
+      }
+    }
+  ],
+  ON_COMPLETE: (res) => res.replaceAll("  ", " "),
+  allowNoNiqqud: false,
+  article: false,
+  holemHaser: "remove",
+  ketivQeres: [
+    {
+      input: /הִוא/,
+      output: (heb, input) => heb.replace(input, "הִיא"),
+      captureTaamim: true,
+      ignoreTaamim: true
+    }
+  ],
+  longVowels: false,
+  qametsQatan: true,
+  shevaAfterMeteg: false,
+  shevaWithMeteg: true,
+  sqnmlvy: false,
+  strict: true,
+  wawShureq: false
+};

@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/tiberian/rule.schema.json",
+  "title": "TiberianHebrewRulesCorpus",
+  "type": "object",
+  "required": ["version", "source_files", "rules"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "string" },
+    "description": { "type": "string" },
+    "source_files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 5
+    },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/rule" }
+    }
+  },
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "status",
+        "authority",
+        "category",
+        "subcategory",
+        "statement",
+        "conditions",
+        "operation",
+        "result_ipa",
+        "examples",
+        "source",
+        "certainty"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^TH-(CON|BGDKPT|GUTT|DAG|RAF|VOW|LEN|SHEWA|HATEF|SYL|STR|MAQ|QK|VAR|GAP|ACC|ORTH)-[A-Z0-9]+(-[A-Z0-9]+)*$"
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "status": {
+          "type": "string",
+          "enum": ["rule", "exception", "variant", "evidence", "gap", "conflict"]
+        },
+        "authority": {
+          "type": "string",
+          "enum": [
+            "standard-tiberian",
+            "non-standard-tiberian",
+            "manuscript",
+            "comparative",
+            "editorial"
+          ]
+        },
+        "category": { "type": "string", "minLength": 1 },
+        "subcategory": { "type": "string" },
+        "statement": { "type": "string", "minLength": 1 },
+        "conditions": { "type": "string" },
+        "operation": { "type": "string" },
+        "result_ipa": { "type": ["string", "null"] },
+        "preconditions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "ordering_notes": { "type": "string", "default": "" },
+        "exceptions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "related_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "examples": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/example" }
+        },
+        "no_example_in_source": { "type": "boolean", "default": false },
+        "source": { "$ref": "#/$defs/source" },
+        "certainty": {
+          "type": "string",
+          "enum": ["high", "medium", "low", "unresolved"]
+        },
+        "notes": { "type": "string", "default": "" }
+      }
+    },
+    "example": {
+      "type": "object",
+      "required": ["hebrew"],
+      "additionalProperties": false,
+      "properties": {
+        "hebrew": { "type": "string" },
+        "source_ipa": { "type": ["string", "null"] },
+        "transliteration": { "type": ["string", "null"] },
+        "gloss": { "type": ["string", "null"] },
+        "citation": { "type": ["string", "null"] },
+        "manuscript": { "type": ["string", "null"] },
+        "stream": {
+          "type": ["string", "null"],
+          "enum": [null, "forte-lene", "extended-forte", "either"]
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["file", "section"],
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "type": "string",
+          "enum": [
+            "T1_0_Intro.md",
+            "T1_1.md",
+            "T1_2B_corrected_p352.md",
+            "T1_3B.md",
+            "T1_4B_5_Ref.md"
+          ]
+        },
+        "section": { "type": "string" },
+        "line_start": { "type": ["integer", "null"] },
+        "line_end": { "type": ["integer", "null"] },
+        "excerpt": { "type": "string", "default": "" }
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.so
+.DS_Store
+
+# Node deps (install with: cd js && npm install)
+js/node_modules/
+
+# Separate pure-Python project (own repo)
+native/
+
+# Private Khan T1 book extracts — do not publish
+T1_*.md
+
+# Generated IPA / local notes
+*.ipa.txt
+*.ipa.jsonl
+.remember/
+corpus/_partials/
