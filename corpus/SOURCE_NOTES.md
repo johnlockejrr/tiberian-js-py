@@ -12,7 +12,7 @@ Only these files define pronunciation rules:
 
 Indexes and bibliographies after main prose are not primary rule sources.
 
-Helpers (`docs/AGENTS.md`, `docs/superpowers.md`, `docs/tiberian.ts`) are non-authoritative.
+Helpers under a local ``docs/`` tree (if present) are non-authoritative and not published.
 
 ## Authority layers
 

@@ -7,7 +7,7 @@ This repository is the **JS-backed** stack (`src/tiberian` + `js/`). A separate 
 ## Credits
 
 - **Linguistic authority:** Geoffrey Khan’s description of the Tiberian reading tradition (*The Tiberian Pronunciation Tradition of Biblical Hebrew* / TPT). Private source extracts used during development are **not** included in this repository.
-- **Engine:** Charles Loder — [hebrew-transliteration](https://github.com/charlesLoder/hebrew-transliteration) + [havarotjs](https://github.com/charlesLoder/havarotjs) (MIT). Schema: [`docs/tiberian.ts`](docs/tiberian.ts).
+- **Engine:** Charles Loder — [hebrew-transliteration](https://github.com/charlesLoder/hebrew-transliteration) + [havarotjs](https://github.com/charlesLoder/havarotjs) (MIT). Schema: [`js/schemas/tiberian.ts`](js/schemas/tiberian.ts).
 
 ## Requirements
 
@@ -25,8 +25,6 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 
 cd js && npm install && cd ..
-# optional: refresh schema copy from docs/
-python scripts/sync_tiberian_schema.py
 ```
 
 ## Quickstart
@@ -69,7 +67,7 @@ JSONL: `-o out.jsonl` or `--format jsonl`.
 ```text
 pointed Hebrew
   → normalize (NFD) + qere
-  → js/runner.ts  (hebrew-transliteration + docs/tiberian.ts + havarotjs)
+  → js/runner.ts  (hebrew-transliteration + js/schemas/tiberian.ts + havarotjs)
   → bare IPA
 ```
 
@@ -77,7 +75,7 @@ pointed Hebrew
 |------|------|
 | `src/tiberian/` | Python API + CLI (`engine_js` bridge) |
 | `js/` | Node runner + vendored schema |
-| `docs/tiberian.ts` | Tiberian Schema (IPA inventory + ADDITIONAL_FEATURES) |
+| `js/schemas/tiberian.ts` | Tiberian Schema (IPA inventory + ADDITIONAL_FEATURES) |
 | `corpus/` | Extracted pronunciation-rule corpus (derived; not the book text) |
 
 Default stream: **forte–lene**. Output is **bare IPA** (no `[…]`). Non-Hebrew input fails closed.

@@ -19,6 +19,9 @@ native/
 # Private Khan T1 book extracts — do not publish
 T1_*.md
 
+# Local helper docs / draft schema (not published; runtime schema is js/schemas/)
+docs/
+
 # Generated IPA / local notes
 *.ipa.txt
 *.ipa.jsonl

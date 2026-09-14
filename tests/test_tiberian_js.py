@@ -13,7 +13,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 USER_VERSE = "מִֽי־פָקַ֣ד עָלָ֣יו אָ֑רְצָה וּמִ֥י שָׂ֝֗ם תֵּבֵ֥ל כֻּלָּֽהּ׃"
-# hebrew-transliteration Tiberian schema (docs/tiberian.ts rule set)
+# hebrew-transliteration Tiberian schema (js/schemas/tiberian.ts)
 USER_IPA = "ˌmiˑ-ppʰɔːˈq̟aːað ʕɔːˈlɔːɔw ˈʔɔːɔʀ̟sˁɔː wuˈmiː ˈsɔːɔm tʰeːˈveːel kʰulˈlɔːɔh"
 
 

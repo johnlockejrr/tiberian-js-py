@@ -1,7 +1,7 @@
 """Public API: Tiberian IPA for any Masoretic Hebrew text.
 
 Default engine: Node ``hebrew-transliteration`` with the Tiberian schema
-(same rule set as ``docs/tiberian.ts``: length, epenthesis, shewa, digraph
+(same rule set as ``js/schemas/tiberian.ts``: length, epenthesis, shewa, digraph
 gemination, furtive pataḥ, etc., on top of havarotjs syllabification).
 
 Optional ``engine="python"`` uses the incomplete pure-Python path (dev only).
@@ -81,7 +81,7 @@ def transcribe(
     """Transcribe pointed Biblical Hebrew to Tiberian IPA.
 
     Default ``engine="js"`` runs the Tiberian schema from
-    ``hebrew-transliteration`` (aligned with ``docs/tiberian.ts`` / Khan TPT).
+    ``hebrew-transliteration`` (aligned with ``js/schemas/tiberian.ts`` / Khan TPT).
     """
     prof = resolve_profile(profile)
     norm = normalize(text)
@@ -136,7 +136,7 @@ def transcribe(
                 {
                     "stage": "rules",
                     "engine": "hebrew-transliteration",
-                    "schema": "docs/tiberian.ts",
+                    "schema": "js/schemas/tiberian.ts",
                     "stream": prof.stream,
                     "syllabifier": "havarotjs",
                 }

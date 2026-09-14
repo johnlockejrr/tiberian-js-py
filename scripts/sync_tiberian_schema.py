@@ -1,26 +1,21 @@
 #!/usr/bin/env python3
-"""Sync docs/tiberian.ts → js/schemas/tiberian.ts (package Schema import)."""
+"""Deprecated: schema now lives only at js/schemas/tiberian.ts (docs/ is private)."""
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "docs" / "tiberian.ts"
 DST = ROOT / "js" / "schemas" / "tiberian.ts"
-
-OLD = 'import type { Schema } from "../schema.js";'
-NEW = 'import type { Schema } from "hebrew-transliteration";'
 
 
 def main() -> int:
-    text = SRC.read_text(encoding="utf-8")
-    if OLD not in text:
-        raise SystemExit(f"unexpected import in {SRC}")
-    DST.parent.mkdir(parents=True, exist_ok=True)
-    DST.write_text(text.replace(OLD, NEW, 1), encoding="utf-8")
-    print(f"synced {SRC} → {DST}")
-    return 0
+    if DST.is_file():
+        print(f"schema already at {DST} (no docs/ sync; docs/ is not published)")
+        return 0
+    print(f"missing {DST}", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":

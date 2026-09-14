@@ -1,9 +1,8 @@
-"""Node-backed Tiberian IPA engine (docs/tiberian.ts + hebrew-transliteration).
+"""Node-backed Tiberian IPA engine (js/schemas/tiberian.ts + hebrew-transliteration).
 
-``docs/tiberian.ts`` is a Schema for charlesLoder/hebrew-transliteration. That
-library (plus havarotjs syllabification) applies ADDITIONAL_FEATURES — vowel
-length, closed-syllable epenthesis, shewa, digraph gemination, etc. This module
-invokes ``js/runner.ts`` via ``npx tsx``.
+The Tiberian Schema drives charlesLoder/hebrew-transliteration (plus havarotjs
+syllabification): vowel length, closed-syllable epenthesis, shewa, digraph
+gemination, etc. This module invokes ``js/runner.ts`` via ``npx tsx``.
 """
 
 from __future__ import annotations
@@ -67,7 +66,7 @@ def require_js_engine() -> None:
 
 
 def transliterate_js(hebrew: str, *, timeout: float = 60.0) -> str:
-    """Transcribe pointed Hebrew to Tiberian IPA via docs/tiberian.ts."""
+    """Transcribe pointed Hebrew to Tiberian IPA via js/schemas/tiberian.ts."""
     require_js_engine()
     npx = str(js_engine_status()["npx"] or "npx")
     payload = json.dumps({"text": hebrew}, ensure_ascii=False)

@@ -11,7 +11,7 @@ const cases = {
   gen1: "בְּרֵאשִׁ֖ית בָּרָ֣א אֱלֹהִ֑ים אֵ֥ת הַשָּׁמַ֖יִם וְאֵ֥ת הָאָֽרֶץ׃",
 };
 
-// docs/tiberian.ts syl opts
+// js/schemas/tiberian.ts syl opts
 const sylOpts = {
   allowNoNiqqud: false, article: false, holemHaser: "remove",
   longVowels: false, qametsQatan: true, shevaAfterMeteg: false,

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * Tiberian IPA runner — applies docs/tiberian.ts (synced to schemas/tiberian.ts)
- * via hebrew-transliteration + havarotjs syllabification.
+ * Tiberian IPA runner — applies js/schemas/tiberian.ts via hebrew-transliteration
+ * + havarotjs syllabification.
  *
  * stdin JSON: { "text": "<hebrew>" }
- * stdout JSON: { "ipa": "...", "engine": "...", "schema": "docs/tiberian.ts" }
+ * stdout JSON: { "ipa": "...", "engine": "...", "schema": "js/schemas/tiberian.ts" }
  */
 import { transliterate } from "hebrew-transliteration";
 import { tiberian } from "./schemas/tiberian.ts";
@@ -47,7 +47,7 @@ try {
     JSON.stringify({
       ipa,
       engine: "hebrew-transliteration",
-      schema: "docs/tiberian.ts",
+      schema: "js/schemas/tiberian.ts",
     })
   );
 } catch (err) {

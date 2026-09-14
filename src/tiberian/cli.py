@@ -41,7 +41,7 @@ def main(argv: list[str] | None = None) -> int:
         default="js",
         help=(
             "js (default): hebrew-transliteration Tiberian schema "
-            "(docs/tiberian.ts rules + havarotjs syllables); "
+            "(js/schemas/tiberian.ts + havarotjs syllables); "
             "python: incomplete pure-Python path; auto: js if available"
         ),
     )
