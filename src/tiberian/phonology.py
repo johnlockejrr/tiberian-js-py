@@ -20,8 +20,10 @@ from tiberian.orthography import (
     HOLAM,
     PATAH,
     QAMATS,
+    QAMATS_QATAN,
     QUBUTS,
     RESH,
+    SEGOL,
     SHEVA,
     TSERE,
     VAV,
@@ -35,6 +37,7 @@ from tiberian.orthography import (
 )
 from tiberian.profiles import Profile
 from tiberian.syllables import is_vocalic_shewa, shewa_quality
+from tiberian.dehiq import is_dehiq_pair
 
 
 @dataclass
@@ -45,9 +48,11 @@ class WordIPA:
     rule_ids: list[str] = field(default_factory=list)
 
 
-def _geminate(c: Cluster, *, word_initial: bool, stream: str) -> bool:
+def _geminate(c: Cluster, *, word_initial: bool, stream: str, force_forte: bool = False) -> bool:
     if not c.dagesh:
         return False
+    if force_forte and word_initial:
+        return True
     if c.letter in BGDKPT:
         if word_initial:
             return stream == "extended_forte"
@@ -65,19 +70,88 @@ def _pharyngealized_resh(prev: Cluster | None) -> bool:
     return False
 
 
+def _is_furtive_host(clusters: list[Cluster], i: int) -> bool:
+    """Final ח/ע/הּ + pataḥ after a high/mid vowel (I.2.4) — never stressed."""
+    if i != len(clusters) - 1:
+        return False
+    c = clusters[i]
+    if c.vowel != PATAH:
+        return False
+    if c.letter not in {HET, AYIN, HE}:
+        return False
+    if c.letter == HE and not c.dagesh:
+        return False
+    for j in range(i - 1, -1, -1):
+        prev = clusters[j]
+        if is_mater(prev, clusters[j - 1] if j else None) or (
+            prev.letter in {YOD, VAV, HE, ALEF}
+            and not prev.vowel
+            and not prev.shewa
+            and not prev.shureq
+            and not prev.hataf
+        ):
+            continue
+        pq = "u" if prev.shureq else vowel_quality(prev)
+        return pq in {"u", "o", "i", "e"}
+    return False
+
+
+def _prev_vowel_quality(clusters: list[Cluster], i: int) -> str | None:
+    for j in range(i - 1, -1, -1):
+        prev = clusters[j]
+        if is_mater(prev, clusters[j - 1] if j else None) or (
+            prev.letter in {YOD, VAV, HE, ALEF}
+            and not prev.vowel
+            and not prev.shewa
+            and not prev.shureq
+            and not prev.hataf
+        ):
+            continue
+        return "u" if prev.shureq else vowel_quality(prev)
+    return None
+
+
 def _stress_index(clusters: list[Cluster]) -> int:
-    """Cluster index bearing main stress (teʿam), else last vocalic cluster."""
+    """Cluster index bearing main stress; furtive pataḥ never stressed."""
+    si: int | None = None
     for i, c in enumerate(clusters):
         if c.has_accent:
-            return i
-    # fallback: last cluster with a full vowel / shureq / ḥaṭef
-    for i in range(len(clusters) - 1, -1, -1):
-        c = clusters[i]
-        if c.shureq or c.hataf or (c.vowel and c.vowel != SHEVA):
-            return i
-        if c.shewa and is_vocalic_shewa(c, i, clusters):
-            return i
-    return max(0, len(clusters) - 1)
+            si = i
+            break
+    if si is None:
+        for i in range(len(clusters) - 1, -1, -1):
+            c = clusters[i]
+            if c.shureq or c.hataf or (c.vowel and c.vowel != SHEVA):
+                si = i
+                break
+            if c.shewa and is_vocalic_shewa(c, i, clusters):
+                si = i
+                break
+        if si is None:
+            si = max(0, len(clusters) - 1)
+
+    # Accent on a mater / vowelless letter → preceding vocalic cluster.
+    c0 = clusters[si]
+    if not (c0.shureq or c0.hataf or (c0.vowel and c0.vowel != SHEVA) or (
+        c0.shewa and is_vocalic_shewa(c0, si, clusters)
+    )):
+        for j in range(si - 1, -1, -1):
+            c = clusters[j]
+            if c.shureq or c.hataf or (c.vowel and c.vowel != SHEVA):
+                si = j
+                break
+            if c.shewa and is_vocalic_shewa(c, j, clusters):
+                si = j
+                break
+
+    if _is_furtive_host(clusters, si) and si > 0:
+        for j in range(si - 1, -1, -1):
+            c = clusters[j]
+            if c.shureq or c.hataf or (c.vowel and c.vowel != SHEVA):
+                return j
+            if c.shewa and is_vocalic_shewa(c, j, clusters):
+                return j
+    return si
 
 
 def _emit_consonant(
@@ -88,6 +162,7 @@ def _emit_consonant(
     prev: Cluster | None,
     profile: Profile,
     rules: list[str],
+    force_forte: bool = False,
 ) -> str:
     if c.letter == RESH:
         if c.dagesh:
@@ -99,19 +174,33 @@ def _emit_consonant(
         rules.append("TH-CON-RESH")
         return "ʀ̟"
 
-    gem = _geminate(c, word_initial=word_initial, stream=profile.stream)
+    gem = _geminate(
+        c, word_initial=word_initial, stream=profile.stream, force_forte=force_forte
+    )
     if c.letter == YOD and c.dagesh:
         rules.append("TH-CON-YOD-GEM")
         return "ɟɟ"
     if gem:
-        rules.append("TH-DAG-FORTE" if not (c.letter in BGDKPT and word_initial) else "TH-DAG-EXTENDED-FORTE")
+        rules.append(
+            "TH-DAG-FORTE"
+            if not (c.letter in BGDKPT and word_initial and not force_forte)
+            else "TH-DAG-EXTENDED-FORTE"
+        )
+        if force_forte and word_initial:
+            rules.append("TH-STR-DEHIQ")
     elif c.letter in BGDKPT and c.dagesh and word_initial:
         rules.append("TH-DAG-LENE")
 
     return consonant_ipa(c, after_vowel=after_vowel, geminate=gem, stream=profile.stream)
 
 
-def word_to_ipa(word: str, profile: Profile) -> WordIPA:
+def word_to_ipa(
+    word: str,
+    profile: Profile,
+    *,
+    dehiq_host: bool = False,
+    dehiq_onset: bool = False,
+) -> WordIPA:
     """Transcribe one orthographic word (may include maqqef-internal pieces already split)."""
     raw = word
     w = word.replace("׃", "").replace("׀", "").strip()
@@ -205,6 +294,7 @@ def word_to_ipa(word: str, profile: Profile) -> WordIPA:
                 prev=prev,
                 profile=profile,
                 rules=rules,
+                force_forte=dehiq_onset and word_initial,
             )
             if cipa.startswith("<"):
                 unresolved.append({"span": c.text, "reason": "unsupported_consonant_mapping", "rule_ids": []})
@@ -245,24 +335,33 @@ def word_to_ipa(word: str, profile: Profile) -> WordIPA:
                 coda = nxt
                 coda_idx = i + 1
 
-        # Furtive pataḥ: final guttural with pataḥ after high/mid vowel on previous — handled as own vowel on guttural
-        furtive = False
-        if (
-            c.vowel == PATAH
-            and c.letter in {HET, AYIN, HE}
-            and (c.letter != HE or c.dagesh)
-            and i == len(clusters) - 1
-            and prev is not None
-        ):
-            pq = "u" if prev.shureq else vowel_quality(prev)
-            if pq in {"u", "o", "i", "e"}:
-                furtive = True
-
+        # Furtive pataḥ: final guttural with pataḥ after high/mid vowel
+        furtive = _is_furtive_host(clusters, i)
         closed = coda is not None and not furtive
         always_long = q in {"e", "o"}  # ṣere / ḥolem (I.2.2.4)
         # Length (I.2.2): long if stressed OR open unstressed; short if closed unstressed
+        # Deḥiq: final unstressed qameṣ/segol → half-long (§I.2.8.1.2),
+        # including when a quiet mater he follows.
+        is_last_vocalic = True
+        for k in range(i + 1, len(clusters)):
+            ck = clusters[k]
+            if ck.shureq or ck.hataf or (ck.vowel and ck.vowel != SHEVA):
+                is_last_vocalic = False
+                break
+            if ck.shewa and is_vocalic_shewa(ck, k, clusters):
+                is_last_vocalic = False
+                break
+        dehiq_half = (
+            dehiq_host
+            and is_last_vocalic
+            and not stressed
+            and not closed
+            and c.vowel in {QAMATS, QAMATS_QATAN, SEGOL}
+        )
         if c.hataf or (c.shewa and not c.hataf):
             long = False  # shewa/ḥaṭef short
+        elif dehiq_half:
+            long = False
         elif always_long:
             long = True
         elif stressed:
@@ -276,6 +375,9 @@ def word_to_ipa(word: str, profile: Profile) -> WordIPA:
             # minor gaʿya / meteg: half-long (I.2.8)
             nuc = q + "ˑ"
             rules.append("TH-STR-METEG")
+        elif dehiq_half:
+            nuc = q + "ˑ"
+            rules.append("TH-STR-DEHIQ")
         elif long:
             nuc = q + "ː"
             rules.append("TH-LEN-LONG")
@@ -290,8 +392,7 @@ def word_to_ipa(word: str, profile: Profile) -> WordIPA:
 
         if furtive:
             # emit onset of previous already done; this cluster is guttural with pataḥ
-            # Rewrite as glide? + a + C  (I.2.4)
-            pq = "u" if prev and prev.shureq else (vowel_quality(prev) if prev else "")
+            pq = _prev_vowel_quality(clusters, i) or ""
             glide = "w" if pq in {"u", "o"} else ("j" if pq in {"i", "e"} else "")
             parts.append(glide + "a")
             parts.append(
@@ -339,20 +440,51 @@ def word_to_ipa(word: str, profile: Profile) -> WordIPA:
 
 def phrase_to_ipa(text: str, profile: Profile) -> tuple[str, list[WordIPA], list[dict]]:
     tokens = re.split(r"(\s+|־)", text)
+    # Collect Hebrew word tokens with maqqaf-binding flags for deḥiq.
+    words: list[tuple[str, bool]] = []  # (token, bound_to_next_by_maqaf)
+    i = 0
+    raw_tokens = [t for t in tokens if t]
+    while i < len(raw_tokens):
+        tok = raw_tokens[i]
+        if tok.isspace() or tok == "־":
+            i += 1
+            continue
+        bound = False
+        # maqqaf immediately after this word
+        if i + 1 < len(raw_tokens) and raw_tokens[i + 1] == "־":
+            bound = True
+        words.append((tok, bound))
+        i += 1
+
     word_results: list[WordIPA] = []
     pieces: list[str] = []
     unresolved: list[dict] = []
-    for tok in tokens:
-        if not tok:
-            continue
+
+    # Rebuild with spaces/maqafs, applying deḥiq pair flags.
+    heb_idx = 0
+    for tok in raw_tokens:
         if tok.isspace():
             pieces.append(" ")
             continue
         if tok == "־":
             pieces.append("-")
             continue
-        wr = word_to_ipa(tok, profile)
-        word_results.append(wr)
-        pieces.append(wr.ipa)
-        unresolved.extend(wr.unresolved)
+        host = False
+        onset = False
+        if heb_idx < len(words):
+            cur, bound = words[heb_idx]
+            if heb_idx + 1 < len(words):
+                nxt, _ = words[heb_idx + 1]
+                if is_dehiq_pair(cur, nxt, bound_by_maqaf=bound):
+                    host = True
+                    # mark next word's onset when we get there
+            if heb_idx > 0:
+                prev, prev_bound = words[heb_idx - 1]
+                if is_dehiq_pair(prev, cur, bound_by_maqaf=prev_bound):
+                    onset = True
+            wr = word_to_ipa(tok, profile, dehiq_host=host, dehiq_onset=onset)
+            word_results.append(wr)
+            pieces.append(wr.ipa)
+            unresolved.extend(wr.unresolved)
+            heb_idx += 1
     return "".join(pieces), word_results, unresolved

@@ -1,3 +1,5 @@
+import "./lib/khanHavarotPatch.ts";
+import "./lib/patchHebTrans.ts";
 import { transliterate } from "hebrew-transliteration";
 import { tiberian } from "./schemas/tiberian.ts";
 import { Text } from "havarotjs";

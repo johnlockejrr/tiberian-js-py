@@ -1,4 +1,18 @@
 import type { Schema } from "hebrew-transliteration";
+import type { Cluster, Word } from "havarotjs";
+import { isDehiqPair, wordIsDehiqHost } from "../lib/dehiq.ts";
+import "../lib/khanHavarotPatch.ts";
+import "../lib/patchHebTrans.ts";
+
+/** Maqqef construct or deḥiq → geminate digraph as C+Cʰ (ppʰ), not CʰCʰ. */
+function digraphWordInitialForte(cluster: Cluster): boolean {
+  const prevWord = cluster.syllable?.word?.prev?.value as Word | undefined;
+  const word = cluster.syllable?.word;
+  if (!prevWord || !word) return false;
+  const constructOpen =
+    Boolean(prevWord.isInConstruct) && !prevWord.syllables.at(-1)?.isClosed;
+  return constructOpen || isDehiqPair(prevWord, word);
+}
 
 export const tiberian: Schema = {
   VOCAL_SHEVA: "a",
@@ -90,10 +104,8 @@ export const tiberian: Schema = {
         const secondChar = "ʰ";
         const noSecondCharacter = digraph?.replace(secondChar, "") ?? "";
 
-        // if there is a dagesh, and the previous word is in construct and does not end in a closed syllable,
-        // then it is a word initial dagesh chazaq and we need to replace the first character of the digraph
-        const prevWord = cluster.syllable?.word?.prev?.value;
-        if (prevWord?.isInConstruct && !prevWord.syllables.at(-1)?.isClosed) {
+        // Word-initial dagesh chazaq: maqqef construct or deḥiq → C + Cʰ (not CʰCʰ).
+        if (digraphWordInitialForte(cluster)) {
           return cluster.text.replace(heb, `${noSecondCharacter + digraph}`);
         }
 
@@ -131,8 +143,7 @@ export const tiberian: Schema = {
         const secondChar = "ʰ";
         const noAspiration = digraph?.replace(secondChar, "") ?? "";
 
-        const prevWord = cluster.syllable?.word?.prev?.value;
-        if (prevWord?.isInConstruct && !prevWord.syllables.at(-1)?.isClosed) {
+        if (digraphWordInitialForte(cluster)) {
           return cluster.text.replace(heb, `${noAspiration + digraph}`);
         }
 
@@ -162,8 +173,7 @@ export const tiberian: Schema = {
         const secondChar = "ʰ";
         const noAspiration = digraph?.replace(secondChar, "") ?? "";
 
-        const prevWord = cluster.syllable?.word?.prev?.value;
-        if (prevWord?.isInConstruct && !prevWord.syllables.at(-1)?.isClosed) {
+        if (digraphWordInitialForte(cluster)) {
           return cluster.text.replace(heb, `${noAspiration + digraph}`);
         }
 
@@ -195,8 +205,7 @@ export const tiberian: Schema = {
         const secondChar = "ˁ";
         const noSecondCharacter = digraph?.replace(secondChar, "") ?? "";
 
-        const prevWord = cluster.syllable?.word?.prev?.value;
-        if (prevWord?.isInConstruct && !prevWord.syllables.at(-1)?.isClosed) {
+        if (digraphWordInitialForte(cluster)) {
           return cluster.text.replace(heb, `${noSecondCharacter + digraph}`);
         }
 
@@ -227,8 +236,7 @@ export const tiberian: Schema = {
         const secondChar = "ˁ";
         const noSecondCharacter = digraph?.replace(secondChar, "") ?? "";
 
-        const prevWord = cluster.syllable?.word?.prev?.value;
-        if (prevWord?.isInConstruct && !prevWord.syllables.at(-1)?.isClosed) {
+        if (digraphWordInitialForte(cluster)) {
           return cluster.text.replace(heb, `${noSecondCharacter + digraph}`);
         }
 
@@ -509,6 +517,22 @@ export const tiberian: Schema = {
           return noMaterText.replace(
             vowel,
             `${vowelRealization + lengthMarker + syllableSeparator + vowelRealization}`
+          );
+        }
+
+        // Deḥiq: compress final unstressed long qameṣ/segol to half-long (§I.2.8.1.2).
+        const word = syllable.word;
+        if (
+          syllable.isFinal &&
+          !isAccented &&
+          !isClosed &&
+          (vowelName === "QAMATS" || vowelName === "SEGOL") &&
+          word &&
+          wordIsDehiqHost(word)
+        ) {
+          return noMaterText.replace(
+            vowel,
+            `${determinePatachRealization(vowel)}${halfLengthMarker}`
           );
         }
 
